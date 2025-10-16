@@ -41,7 +41,6 @@ export default function CardDetailModal({
                   />
                 ) : (
                   <div className="text-gray-400 text-center">
-                    <div className="text-6xl mb-4">🃏</div>
                     <div>No Image Available</div>
                   </div>
                 )}
