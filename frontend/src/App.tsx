@@ -1,7 +1,20 @@
-import { Outlet } from "@tanstack/react-router";
+import { Outlet, useRouterState } from "@tanstack/react-router";
+import { RedirectToSignIn, SignedOut } from "@clerk/clerk-react";
 
 function App() {
-  return <Outlet />;
+  const { location } = useRouterState();
+  const isIndexRoute = location.pathname === "/";
+
+  return (
+    <>
+      {!isIndexRoute && (
+        <SignedOut>
+          <RedirectToSignIn />
+        </SignedOut>
+      )}
+      <Outlet />
+    </>
+  );
 }
 
 export default App;
