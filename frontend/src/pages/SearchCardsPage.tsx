@@ -37,6 +37,15 @@ export default function SearchCardsPage() {
   return (
     <div className="min-h-screen bg-gray-100">
       <div className="container mx-auto px-4 py-8">
+        {/* Back to index */}
+        <div className="mb-4">
+          <a
+            href="/"
+            className="inline-block px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
+          >
+            Back
+          </a>
+        </div>
         {/* Header */}
         <div className="mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Card Search</h1>
