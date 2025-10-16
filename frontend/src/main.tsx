@@ -6,7 +6,16 @@ import { ClerkProvider } from "@clerk/clerk-react";
 import "./index.css";
 import { router } from "./router";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      retry: 2,
+      retryDelay: (attemptIndex) => Math.min(1000 * 2 ** attemptIndex, 30000),
+      staleTime: 5 * 60 * 1000, // 5 minutes
+      gcTime: 10 * 60 * 1000, // 10 minutes
+    },
+  },
+});
 const clerkPublishableKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
 if (!clerkPublishableKey) {
   throw new Error("Missing VITE_CLERK_PUBLISHABLE_KEY. Add it to your .env.");

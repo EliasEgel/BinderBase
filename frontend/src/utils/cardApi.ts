@@ -3,14 +3,25 @@
 export interface Card {
   id: string;
   name: string;
+  names?: string[];
+  manaCost?: string;
+  cmc?: number;
+  colors?: string[];
+  colorIdentity?: string[];
   type: string;
+  supertypes?: string[];
+  types?: string[];
+  subtypes?: string[];
   rarity: string;
   set: string;
+  text?: string;
+  artist?: string;
+  number?: string;
+  power?: string;
+  toughness?: string;
+  layout?: string;
+  multiverseid?: number;
   imageUrl?: string;
-  description?: string;
-  manaCost?: string;
-  power?: number;
-  toughness?: number;
 }
 
 export interface SearchFilters {
@@ -20,40 +31,110 @@ export interface SearchFilters {
 export interface SearchResponse {
   cards: Card[];
   total: number;
-  page: number;
-  pageSize: number;
+}
+
+// MTG API response interface
+interface MTGCard {
+  name: string;
+  names?: string[];
+  manaCost?: string;
+  cmc?: number;
+  colors?: string[];
+  colorIdentity?: string[];
+  type: string;
+  supertypes?: string[];
+  types?: string[];
+  subtypes?: string[];
+  rarity: string;
+  set: string;
+  text?: string;
+  artist?: string;
+  number?: string;
+  power?: string;
+  toughness?: string;
+  layout?: string;
+  multiverseid?: number;
+  imageUrl?: string;
+  id: string;
+}
+
+interface MTGApiResponse {
+  cards: MTGCard[];
 }
 
 /**
  * Search for cards based on provided filters
  * @param filters - Search criteria
- * @param page - Page number (default: 1)
- * @param pageSize - Number of results per page (default: 20)
  * @returns Promise with search results
  */
 export async function searchCards(
-  filters: SearchFilters = {},
-  page: number = 1,
-  pageSize: number = 20
+  filters: SearchFilters
 ): Promise<SearchResponse> {
-  // TODO: Implement actual API call to backend
-  // For now, return mock data structure
-  console.log(
-    "Searching cards with filters:",
-    filters,
-    "page:",
-    page,
-    "pageSize:",
-    pageSize
-  );
+  try {
+    // Get the API base URL from environment variables
+    const apiBaseUrl = import.meta.env.VITE_MTG_API;
 
-  // Mock response structure - replace with actual API call
-  return {
-    cards: [],
-    total: 0,
-    page,
-    pageSize,
-  };
+    if (!apiBaseUrl) {
+      throw new Error("VITE_MTG_API environment variable is not set");
+    }
+
+    // Build the search URL
+    const searchParams = new URLSearchParams();
+    if (filters.name) {
+      searchParams.append("name", filters.name);
+    }
+
+    const url = `${apiBaseUrl}/cards?${searchParams.toString()}`;
+
+    console.log("Making API call to:", url);
+
+    // Make the API call
+    const response = await fetch(url);
+
+    if (!response.ok) {
+      throw new Error(
+        `API request failed: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const data: MTGApiResponse = await response.json();
+
+    // Map MTG API response to our Card interface
+    const cards: Card[] = data.cards.map((mtgCard) => ({
+      id: mtgCard.id,
+      name: mtgCard.name,
+      names: mtgCard.names,
+      manaCost: mtgCard.manaCost,
+      cmc: mtgCard.cmc,
+      colors: mtgCard.colors,
+      colorIdentity: mtgCard.colorIdentity,
+      type: mtgCard.type,
+      supertypes: mtgCard.supertypes,
+      types: mtgCard.types,
+      subtypes: mtgCard.subtypes,
+      rarity: mtgCard.rarity,
+      set: mtgCard.set,
+      text: mtgCard.text,
+      artist: mtgCard.artist,
+      number: mtgCard.number,
+      power: mtgCard.power,
+      toughness: mtgCard.toughness,
+      layout: mtgCard.layout,
+      imageUrl: mtgCard.imageUrl,
+    }));
+
+    return {
+      cards,
+      total: cards.length,
+    };
+  } catch (error) {
+    console.error("Error searching cards:", error);
+    throw new Error(
+      `Failed to search cards: ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`
+    );
+  }
 }
 
 /**

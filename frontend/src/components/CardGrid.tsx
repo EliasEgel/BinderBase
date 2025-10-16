@@ -82,7 +82,7 @@ export default function CardGrid({
                   <span className="font-medium">{card.manaCost}</span>
                 </div>
               )}
-              {card.power !== undefined && card.toughness !== undefined && (
+              {card.power && card.toughness && (
                 <div className="flex justify-between">
                   <span>P/T:</span>
                   <span className="font-medium">

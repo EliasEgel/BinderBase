@@ -89,7 +89,7 @@ export default function CardDetailModal({
                 </div>
               )}
 
-              {card.power !== undefined && card.toughness !== undefined && (
+              {card.power && card.toughness && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
                     Power / Toughness
@@ -100,13 +100,13 @@ export default function CardDetailModal({
                 </div>
               )}
 
-              {card.description && (
+              {card.text && (
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
+                    Text
                   </label>
-                  <div className="text-gray-900 text-sm leading-relaxed">
-                    {card.description}
+                  <div className="text-gray-900 text-sm leading-relaxed whitespace-pre-line">
+                    {card.text}
                   </div>
                 </div>
               )}
