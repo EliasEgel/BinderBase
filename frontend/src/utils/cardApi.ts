@@ -20,7 +20,6 @@ export interface Card {
   power?: string;
   toughness?: string;
   layout?: string;
-  multiverseid?: number;
   imageUrl?: string;
 }
 
