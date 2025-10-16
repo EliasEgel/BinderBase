@@ -52,7 +52,6 @@ export default function CardGrid({
               />
             ) : (
               <div className="text-gray-400 text-sm text-center p-4">
-                <div className="text-4xl mb-2">🃏</div>
                 <div>No Image</div>
               </div>
             )}
