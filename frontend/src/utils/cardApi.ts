@@ -23,6 +23,7 @@ export interface Card {
   imageUrl?: string;
 }
 
+// Can be extended with more filters later
 export interface SearchFilters {
   name?: string;
 }
