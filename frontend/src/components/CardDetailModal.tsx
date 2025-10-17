@@ -57,6 +57,12 @@ export default function CardDetailModal({
     }
   }
 
+  function handleClose() {
+    setAddSuccess(null);
+    setAddError(null);
+    onClose();
+  }
+
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
@@ -64,7 +70,7 @@ export default function CardDetailModal({
         <div className="flex justify-between items-center p-6 border-b">
           <h2 className="text-2xl font-bold text-gray-900">{card.name}</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="text-gray-400 hover:text-gray-600 text-2xl"
           >
             ×
@@ -173,7 +179,7 @@ export default function CardDetailModal({
         {/* Footer */}
         <div className="flex justify-end p-6 border-t">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 bg-gray-600 text-white rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
           >
             Close
