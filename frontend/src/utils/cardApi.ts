@@ -1,5 +1,13 @@
 // API utility for card-related operations
 
+// Type for user collection response
+export type CardResponseDto = {
+  id: number;
+  name: string;
+  cardId: string;
+  username: string;
+};
+
 export interface Card {
   id: string;
   name: string;
@@ -136,4 +144,3 @@ export async function searchCards(
     );
   }
 }
-

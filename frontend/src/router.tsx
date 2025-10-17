@@ -12,6 +12,7 @@ import {
 } from "@clerk/clerk-react";
 import App from "./App";
 import SearchCardsPage from "./pages/SearchCardsPage";
+import CollectionsPage from "./pages/CollectionsPage";
 
 // Create a root route
 const rootRoute = createRootRoute({
@@ -48,6 +49,12 @@ const indexRoute = createRoute({
               >
                 Search Cards
               </a>
+              <a
+                href="/collection"
+                className="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors"
+              >
+                View Collection
+              </a>
               <SignOutButton>
                 <button className="px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400">
                   Sign out
@@ -68,8 +75,19 @@ const searchCardsRoute = createRoute({
   component: SearchCardsPage,
 });
 
+// Create a collections route
+const collectionsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/collection",
+  component: CollectionsPage,
+});
+
 // Create the route tree
-const routeTree = rootRoute.addChildren([indexRoute, searchCardsRoute]);
+const routeTree = rootRoute.addChildren([
+  indexRoute,
+  searchCardsRoute,
+  collectionsRoute,
+]);
 
 // Create the router
 export const router = createRouter({ routeTree });
