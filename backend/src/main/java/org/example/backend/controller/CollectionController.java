@@ -26,6 +26,14 @@ public class CollectionController {
         );
     }
 
+    @GetMapping
+    public ResponseEntity<?> getCardsByUserId(@RequestParam String userId) {
+        var cards = cardService.getCardsByUserId(userId);
+        return ResponseEntity.ok(
+            new ApiResponse<>(true, cards, "Cards fetched for user.")
+        );
+    }
+
     // Response wrapper as per project conventions
     public static class ApiResponse<T> {
         public boolean success;

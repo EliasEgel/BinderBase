@@ -17,18 +17,30 @@ public class CardService {
     }
 
     public CardResponseDto addCardToCollection(saveCardDto dto) {
-    Card card = Card.builder()
-        .name(dto.getCardName())
-        .cardId(dto.getCardId())
-        .userId(dto.getUserId())
-        .username(dto.getUsername())
-        .build();
-    Card saved = cardRepository.save(card);
-    return CardResponseDto.builder()
-        .id(saved.getId())
-        .name(saved.getName())
-        .cardId(saved.getCardId())
-        .username(saved.getUsername())
-        .build();
+        Card card = Card.builder()
+            .name(dto.getCardName())
+            .cardId(dto.getCardId())
+            .userId(dto.getUserId())
+            .username(dto.getUsername())
+            .build();
+        Card saved = cardRepository.save(card);
+        return CardResponseDto.builder()
+            .id(saved.getId())
+            .name(saved.getName())
+            .cardId(saved.getCardId())
+            .username(saved.getUsername())
+            .build();
+    }
+
+    public java.util.List<CardResponseDto> getCardsByUserId(String userId) {
+        var cards = cardRepository.findByUserId(userId);
+        return cards.stream()
+            .map(card -> CardResponseDto.builder()
+                .id(card.getId())
+                .name(card.getName())
+                .cardId(card.getCardId())
+                .username(card.getUsername())
+                .build())
+            .toList();
     }
 }
