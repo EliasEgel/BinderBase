@@ -1,29 +1,27 @@
 package org.example.backend.controller;
 
+import org.example.backend.dto.saveCardDto;
+import org.example.backend.dto.CardResponseDto;
+import org.example.backend.service.CardService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import java.util.List;
-import java.util.ArrayList;
 
 @RestController
 @RequestMapping("/api/v1/collection")
 public class CollectionController {
+    private final CardService cardService;
 
-    // Simple in-memory list for demonstration (replace with service/db later)
-    private final List<String> cardCollection = new ArrayList<>();
-
-    @GetMapping
-    public ResponseEntity<?> getAllCards() {
-        return ResponseEntity.ok(
-            new ApiResponse<>(true, cardCollection, "Fetched all cards in collection.")
-        );
+    @Autowired
+    public CollectionController(CardService cardService) {
+        this.cardService = cardService;
     }
 
     @PostMapping
-    public ResponseEntity<?> addCardToCollection(@RequestBody String card) {
-        cardCollection.add(card);
+    public ResponseEntity<?> addCardToCollection(@RequestBody saveCardDto dto) {
+        CardResponseDto responseDto = cardService.addCardToCollection(dto);
         return ResponseEntity.ok(
-            new ApiResponse<>(true, card, "Card added to collection.")
+            new ApiResponse<>(true, responseDto, "Card added to collection.")
         );
     }
 

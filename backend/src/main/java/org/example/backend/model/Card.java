@@ -25,6 +25,9 @@ public class Card {
     @Column(name = "user_id", nullable = false)
     String userId;
 
+    @Column(name = "username", nullable = false)
+    String username;
+
     @Column(name = "card_id", nullable = false)
     String cardId;
 }
