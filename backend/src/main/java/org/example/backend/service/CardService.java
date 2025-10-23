@@ -29,6 +29,7 @@ public class CardService {
             .name(saved.getName())
             .cardId(saved.getCardId())
             .username(saved.getUsername())
+                .status(saved.getStatus())
             .build();
     }
 
@@ -40,6 +41,7 @@ public class CardService {
                 .name(card.getName())
                 .cardId(card.getCardId())
                 .username(card.getUsername())
+                    .status(card.getStatus())
                 .build())
             .toList();
     }
