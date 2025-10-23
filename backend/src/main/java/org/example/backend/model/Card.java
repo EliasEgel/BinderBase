@@ -1,16 +1,13 @@
 package org.example.backend.model;
 
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
+import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
 
 @Entity
 @Table
@@ -33,4 +30,12 @@ public class Card {
 
     @Column(name = "card_id", nullable = false)
     String cardId;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private CardStatus status = CardStatus.IN_COLLECTION;
+
+    /** The proposed price if the card is for sale. */
+    @Column(precision = 10, scale = 2) // For amounts up to 99,999,999.99
+    private BigDecimal price;
 }

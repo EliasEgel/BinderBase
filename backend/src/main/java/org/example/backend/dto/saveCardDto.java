@@ -10,8 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class saveCardDto {
-    String cardName;
-    String cardId;
-    String userId;
-    String username;
+    private String cardName;
+    private String cardId;
+    private String userId;
+    private String username;
 }

@@ -4,6 +4,9 @@ import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import org.example.backend.model.CardStatus;
+
+import java.math.BigDecimal;
 
 @Data
 @NoArgsConstructor
@@ -14,4 +17,6 @@ public class CardResponseDto {
     private String name;
     private String cardId;
     private String username;
+    private CardStatus status;
+    private BigDecimal price;
 }
