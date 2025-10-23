@@ -1,4 +1,16 @@
 package org.example.backend.dto;
 
-public class UnlistCardDto {
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.math.BigDecimal;
+
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
+public class ChangeCardStatusDto {
+    private BigDecimal price;
+    private String userId;
 }
+
