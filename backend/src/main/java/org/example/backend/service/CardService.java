@@ -7,6 +7,8 @@ import org.example.backend.repository.CardRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import static org.example.backend.model.CardStatus.IN_COLLECTION;
+
 @Service
 public class CardService {
     private final CardRepository cardRepository;
@@ -22,6 +24,7 @@ public class CardService {
             .cardId(dto.getCardId())
             .userId(dto.getUserId())
             .username(dto.getUsername())
+                .status(IN_COLLECTION)
             .build();
         Card saved = cardRepository.save(card);
         return CardResponseDto.builder()

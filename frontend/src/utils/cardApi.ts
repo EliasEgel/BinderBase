@@ -1,11 +1,13 @@
 // API utility for card-related operations
-
+export type CardStatus = "IN_COLLECTION" | "FOR_SALE" | "SOLD";
 // Type for user collection response
 export type CardResponseDto = {
   id: number;
   name: string;
   cardId: string;
   username: string;
+  status: CardStatus;
+  price: number | null;
 };
 
 export interface Card {

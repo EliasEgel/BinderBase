@@ -1,19 +1,21 @@
 import { useQuery } from "@tanstack/react-query";
-import { useUser } from "@clerk/clerk-react";
+import { useUser, useAuth } from "@clerk/clerk-react";
 import type { CardResponseDto } from "../utils/cardApi";
-import { useAuth } from "@clerk/clerk-react";
 import { fetchUserCollection } from "../utils/fetchUserCollection";
-
+import CollectionCard from "../components/CollectionCard"; 
 export default function CollectionsPage() {
   const { user } = useUser();
   const { getToken } = useAuth();
   const userId = user?.id;
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ["userCards", userId],
+    queryKey: ["userCards", userId], // This key is important for invalidation
     queryFn: async () => {
       const clerkToken = await getToken();
-      const result = await fetchUserCollection(userId!, clerkToken!);
+      if (!userId || !clerkToken) {
+        throw new Error("User or token not available");
+      }
+      const result = await fetchUserCollection(userId, clerkToken);
       return result.data as CardResponseDto[];
     },
     enabled: !!userId,
@@ -32,40 +34,37 @@ export default function CollectionsPage() {
       <div className="p-8 text-center text-red-500">Error loading cards.</div>
     );
 
-  const cards = data as CardResponseDto[];
+  const cards = data || []; // Default to empty array
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8">
-      {/* Back to index */}
-      <div className="mb-4">
-        <a
-          href="/"
-          className="inline-block px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
-        >
-          Back
-        </a>
+    <div className="min-h-screen bg-gray-100 p-4 md:p-8">
+      <div className="max-w-7xl mx-auto">
+        <div className="mb-6">
+          <a
+            href="/"
+            className="inline-block px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
+          >
+            ← Back to Search
+          </a>
+        </div>
+
+        <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
+          Your Collection
+        </h2>
+
+        {cards.length === 0 ? (
+          <div className="text-center text-gray-500 mt-12">
+            <p>No cards in your collection yet.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {/* 👇 Replace the old div with the new component */}
+            {cards.map((card) => (
+              <CollectionCard key={card.id} card={card} />
+            ))}
+          </div>
+        )}
       </div>
-      <h2 className="text-3xl font-bold mb-6 text-center">Your Collection</h2>
-      {cards?.length === 0 ? (
-        <div className="text-center text-gray-500">
-          No cards in your collection yet.
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {cards?.map((card) => (
-            <div
-              key={card.id}
-              className="bg-white rounded shadow p-4 flex flex-col items-center"
-            >
-              <div className="font-semibold text-lg mb-2">{card.name}</div>
-              <div className="text-gray-600">Card ID: {card.cardId}</div>
-              <div className="text-gray-400 text-sm mt-2">
-                Added by: {card.username}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
     </div>
   );
 }
