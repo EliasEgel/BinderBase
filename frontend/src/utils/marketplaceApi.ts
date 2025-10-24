@@ -56,3 +56,23 @@ export async function markCardAsSold({ cardDbId, userId, clerkToken }: ApiArgs) 
   const endpoint = `${BACKEND_API}/api/v1/marketplace/sold/${cardDbId}`;
   return makePutRequest(endpoint, clerkToken, { userId });
 }
+
+/**
+ * Fetches all cards listed for sale on the marketplace.
+ * This is a public endpoint, but we send the token for authentication.
+ */
+export async function fetchAllCardsForSale(clerkToken: string) {
+  const endpoint = `${BACKEND_API}/api/v1/marketplace`;
+  const response = await fetch(endpoint, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${clerkToken}`,
+    },
+  });
+
+  if (!response.ok) {
+    throw new Error("Failed to fetch marketplace listings");
+  }
+
+  return response.json();
+}

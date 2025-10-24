@@ -13,7 +13,7 @@ import {
 import App from "./App";
 import SearchCardsPage from "./pages/SearchCardsPage";
 import CollectionsPage from "./pages/CollectionsPage";
-
+import MarketplacePage from "./pages/MarketplacePage"; 
 // Create a root route
 const rootRoute = createRootRoute({
   component: () => (
@@ -42,7 +42,7 @@ const indexRoute = createRoute({
             </SignInButton>
           </SignedOut>
           <SignedIn>
-            <div className="flex gap-3">
+            <div className="flex flex-wrap justify-center gap-3">
               <a
                 href="/search"
                 className="px-4 py-2 rounded bg-green-600 text-white hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-400 transition-colors"
@@ -54,6 +54,12 @@ const indexRoute = createRoute({
                 className="px-4 py-2 rounded bg-purple-600 text-white hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-400 transition-colors"
               >
                 View Collection
+              </a>
+              <a
+                href="/marketplace"
+                className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-400 transition-colors"
+              >
+                Marketplace
               </a>
               <SignOutButton>
                 <button className="px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400">
@@ -82,11 +88,19 @@ const collectionsRoute = createRoute({
   component: CollectionsPage,
 });
 
+// Create the new marketplace route
+const marketplaceRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/marketplace",
+  component: MarketplacePage,
+});
+
 // Create the route tree
 const routeTree = rootRoute.addChildren([
   indexRoute,
   searchCardsRoute,
   collectionsRoute,
+  marketplaceRoute,
 ]);
 
 // Create the router

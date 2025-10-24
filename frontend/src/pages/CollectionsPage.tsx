@@ -2,7 +2,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useUser, useAuth } from "@clerk/clerk-react";
 import type { CardResponseDto } from "../utils/cardApi";
 import { fetchUserCollection } from "../utils/fetchUserCollection";
-import CollectionCard from "../components/CollectionCard"; 
+import CardSection from "../components/CardSection"; 
+
 export default function CollectionsPage() {
   const { user } = useUser();
   const { getToken } = useAuth();
@@ -34,7 +35,14 @@ export default function CollectionsPage() {
       <div className="p-8 text-center text-red-500">Error loading cards.</div>
     );
 
-  const cards = data || []; // Default to empty array
+  const cards = data || [];
+
+  // Filter cards into three separate arrays based on status
+  const forSaleCards = cards.filter((card) => card.status === "FOR_SALE");
+  const inCollectionCards = cards.filter(
+    (card) => card.status === "IN_COLLECTION"
+  );
+  const soldCards = cards.filter((card) => card.status === "SOLD");
 
   return (
     <div className="min-h-screen bg-gray-100 p-4 md:p-8">
@@ -48,7 +56,7 @@ export default function CollectionsPage() {
           </a>
         </div>
 
-        <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">
+        <h2 className="text-3xl font-bold mb-10 text-center text-gray-800">
           Your Collection
         </h2>
 
@@ -57,11 +65,10 @@ export default function CollectionsPage() {
             <p>No cards in your collection yet.</p>
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {/* 👇 Replace the old div with the new component */}
-            {cards.map((card) => (
-              <CollectionCard key={card.id} card={card} />
-            ))}
+          <div>
+            <CardSection title="In Collection" cards={inCollectionCards} />
+            <CardSection title="For Sale" cards={forSaleCards} />
+            <CardSection title="Sold" cards={soldCards} />
           </div>
         )}
       </div>
