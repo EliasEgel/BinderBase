@@ -36,6 +36,15 @@ export default function CollectionsPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 p-8">
+      {/* Back to index */}
+      <div className="mb-4">
+        <a
+          href="/"
+          className="inline-block px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
+        >
+          Back
+        </a>
+      </div>
       <h2 className="text-3xl font-bold mb-6 text-center">Your Collection</h2>
       {cards?.length === 0 ? (
         <div className="text-center text-gray-500">
