@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.CardResponseDto;
 import org.example.backend.dto.saveCardDto;
 import org.example.backend.model.Card;
+import org.example.backend.model.CardStatus;
 import org.example.backend.model.User;
 import org.example.backend.repository.CardRepository;
 import org.springframework.stereotype.Service;
@@ -29,6 +30,7 @@ public class CardService {
                 .name(dto.getCardName())
                 .cardId(dto.getCardId())
                 .user(user) // Link the User object, not just the ID.
+                .status(CardStatus.IN_COLLECTION) // Explicitly set the default status
                 .build();
 
         Card savedCard = cardRepository.save(newCard);
