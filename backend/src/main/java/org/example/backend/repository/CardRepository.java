@@ -9,7 +9,11 @@ import java.util.List;
 
 @Repository
 public interface CardRepository extends JpaRepository<Card, Long> {
-	java.util.List<Card> findByUserId(String userId);
+	/**
+	 * Finds all cards belonging to a user, identified by their Clerk ID.
+	 * Spring Data JPA can traverse relationships in queries.
+	 */
+	List<Card> findAllByUser_ClerkUserId(String clerkUserId);
 
 	/** Finds all cards with a specific status, e.g., all cards FOR_SALE. */
 	List<Card> findAllByStatus(CardStatus status);

@@ -89,7 +89,7 @@ public class MarketplaceService {
         Card card = cardRepository.findById(cardDbId)
                 .orElseThrow(() -> new RuntimeException("Card not found with id: " + cardDbId)); // TODO: Use a proper custom exception
 
-        if (!card.getUserId().equals(currentUserId)) {
+        if (!card.getUser().getClerkUserId().equals(currentUserId)) {
             // This prevents one user from selling another user's cards
             throw new SecurityException("User does not have permission to modify this card."); // TODO: Use a proper custom exception
         }
@@ -103,7 +103,7 @@ public class MarketplaceService {
         return CardResponseDto.builder()
                 .id(card.getId())
                 .name(card.getName())
-                .username(card.getUsername())
+                .username(card.getUser().getUsername())
                 .cardId(card.getCardId())
                 .status(card.getStatus())
                 .price(card.getPrice())

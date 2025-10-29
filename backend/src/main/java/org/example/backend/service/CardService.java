@@ -1,51 +1,63 @@
 package org.example.backend.service;
 
-import org.example.backend.dto.saveCardDto;
+import lombok.RequiredArgsConstructor;
 import org.example.backend.dto.CardResponseDto;
+import org.example.backend.dto.saveCardDto;
 import org.example.backend.model.Card;
+import org.example.backend.model.User;
 import org.example.backend.repository.CardRepository;
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import static org.example.backend.model.CardStatus.IN_COLLECTION;
+import org.springframework.transaction.annotation.Transactional;
+import java.util.List;
+import java.util.stream.Collectors;
 
 @Service
+@RequiredArgsConstructor
 public class CardService {
+
     private final CardRepository cardRepository;
+    private final UserService userService;
 
-    @Autowired
-    public CardService(CardRepository cardRepository) {
-        this.cardRepository = cardRepository;
-    }
-
+    /**
+     * Adds a card to a user's collection.
+     * It finds or creates the user based on the provided IDs before adding the card.
+     */
+    @Transactional
     public CardResponseDto addCardToCollection(saveCardDto dto) {
-        Card card = Card.builder()
-            .name(dto.getCardName())
-            .cardId(dto.getCardId())
-            .userId(dto.getUserId())
-            .username(dto.getUsername())
-                .status(IN_COLLECTION)
-            .build();
-        Card saved = cardRepository.save(card);
-        return CardResponseDto.builder()
-            .id(saved.getId())
-            .name(saved.getName())
-            .cardId(saved.getCardId())
-            .username(saved.getUsername())
-                .status(saved.getStatus())
-            .build();
+        User user = userService.findOrCreateUser(dto.getUserId(), dto.getUsername());
+        Card newCard = Card.builder()
+                .name(dto.getCardName())
+                .cardId(dto.getCardId())
+                .user(user) // Link the User object, not just the ID.
+                .build();
+
+        Card savedCard = cardRepository.save(newCard);
+
+        return toDto(savedCard);
     }
 
-    public java.util.List<CardResponseDto> getCardsByUserId(String userId) {
-        var cards = cardRepository.findByUserId(userId);
-        return cards.stream()
-            .map(card -> CardResponseDto.builder()
+    /**
+     * Retrieves all cards for a user based on their Clerk ID.
+     */
+    @Transactional(readOnly = true)
+    public List<CardResponseDto> getCardsByUserId(String clerkUserId) {
+        return cardRepository.findAllByUser_ClerkUserId(clerkUserId)
+                .stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Helper method to map a Card entity to a CardResponseDto.
+     */
+    private CardResponseDto toDto(Card card) {
+        return CardResponseDto.builder()
                 .id(card.getId())
                 .name(card.getName())
                 .cardId(card.getCardId())
-                .username(card.getUsername())
-                    .status(card.getStatus())
-                .build())
-            .toList();
+                .username(card.getUser().getUsername())
+                .status(card.getStatus())
+                .price(card.getPrice())
+                .build();
     }
 }

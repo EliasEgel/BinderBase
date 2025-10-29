@@ -22,14 +22,12 @@ public class Card {
 
     private String name;
 
-    @Column(name = "user_id", nullable = false)
-    String userId;
-
-    @Column(name = "username", nullable = false)
-    String username;
-
     @Column(name = "card_id", nullable = false)
     String cardId;
+
+    @ManyToOne(fetch = FetchType.LAZY) // LAZY is efficient
+    @JoinColumn(name = "user_id", nullable = false) // This is the foreign key column
+    private User user;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
