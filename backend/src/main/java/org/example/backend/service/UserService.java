@@ -50,7 +50,7 @@ public class UserService {
                 // Filter out the current user (you don't want to chat with yourself)
                 .filter(user -> !user.getClerkUserId().equals(clerkUserIdOfCurrentUser))
                 // Map to the safe DTO
-                .map(user -> new UserDto(user.getUsername()))
+                .map(user -> new UserDto(user.getUsername(), user.getClerkUserId()))
                 .collect(Collectors.toList());
     }
 }

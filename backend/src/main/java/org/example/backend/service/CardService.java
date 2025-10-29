@@ -1,6 +1,8 @@
 package org.example.backend.service;
 
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+import java.util.stream.Collectors;
+
 import org.example.backend.dto.CardResponseDto;
 import org.example.backend.dto.saveCardDto;
 import org.example.backend.model.Card;
@@ -9,8 +11,8 @@ import org.example.backend.model.User;
 import org.example.backend.repository.CardRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import java.util.List;
-import java.util.stream.Collectors;
+
+import lombok.RequiredArgsConstructor;
 
 @Service
 @RequiredArgsConstructor
