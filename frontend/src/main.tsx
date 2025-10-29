@@ -5,6 +5,7 @@ import { RouterProvider } from "@tanstack/react-router";
 import { ClerkProvider } from "@clerk/clerk-react";
 import "./index.css";
 import { router } from "./router";
+import { WebSocketProvider } from "./contexts/WebsocketContexts";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -25,7 +26,9 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <ClerkProvider publishableKey={clerkPublishableKey}>
       <QueryClientProvider client={queryClient}>
-        <RouterProvider router={router} />
+        <WebSocketProvider>
+          <RouterProvider router={router} />
+        </WebSocketProvider>
       </QueryClientProvider>
     </ClerkProvider>
   </StrictMode>

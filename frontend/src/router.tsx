@@ -14,6 +14,7 @@ import App from "./App";
 import SearchCardsPage from "./pages/SearchCardsPage";
 import CollectionsPage from "./pages/CollectionsPage";
 import MarketplacePage from "./pages/MarketplacePage"; 
+import ChatPage from "./pages/ChatPage";
 // Create a root route
 const rootRoute = createRootRoute({
   component: () => (
@@ -61,6 +62,12 @@ const indexRoute = createRoute({
               >
                 Marketplace
               </a>
+              <a
+                href="/chat"
+                className="px-4 py-2 rounded bg-emerald-600 text-white hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 transition-colors"
+              >
+                Chat
+              </a>
               <SignOutButton>
                 <button className="px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400">
                   Sign out
@@ -95,12 +102,20 @@ const marketplaceRoute = createRoute({
   component: MarketplacePage,
 });
 
+// Create the new chat route
+const chatRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/chat",
+  component: ChatPage,
+});
+
 // Create the route tree
 const routeTree = rootRoute.addChildren([
   indexRoute,
   searchCardsRoute,
   collectionsRoute,
   marketplaceRoute,
+  chatRoute,
 ]);
 
 // Create the router
