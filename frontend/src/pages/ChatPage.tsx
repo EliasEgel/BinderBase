@@ -1,7 +1,8 @@
-import React, { useState, useEffect, useRef } from "react";
+
 import ChatSidebar from "../components/ChatSidebar";
 import ChatMessageView from "../components/ChatMessageView";
 import { useWebSocket } from "../contexts/WebsocketContexts";
+import { useEffect, useRef, useState } from "react";
 
 // This type MUST match your backend ChatMessage DTO
 export interface ChatMessage {
