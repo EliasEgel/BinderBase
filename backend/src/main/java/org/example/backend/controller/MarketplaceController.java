@@ -1,13 +1,13 @@
 package org.example.backend.controller;
 
 import lombok.RequiredArgsConstructor;
+import org.example.backend.dto.ApiResponse;
 import org.example.backend.dto.CardResponseDto;
 import org.example.backend.dto.ListCardDto;
 import org.example.backend.dto.ChangeCardStatusDto;
 import org.example.backend.service.MarketplaceService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import org.example.backend.controller.CollectionController.ApiResponse;
 
 import java.util.List;
 

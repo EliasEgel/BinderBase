@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.example.backend.dto.ApiResponse;
 
 @CrossOrigin
 @RestController
@@ -28,7 +29,7 @@ public class CollectionController {
     public ResponseEntity<?> addCardToCollection(@RequestBody saveCardDto dto) {
         CardResponseDto responseDto = cardService.addCardToCollection(dto);
         return ResponseEntity.ok(
-            new ApiResponse<>(true, responseDto, "Card added to collection.")
+                new ApiResponse<>(true, responseDto, "Card added to collection.")
         );
     }
 
@@ -36,18 +37,8 @@ public class CollectionController {
     public ResponseEntity<?> getCardsByUserId(@RequestParam String userId) {
         var cards = cardService.getCardsByUserId(userId);
         return ResponseEntity.ok(
-            new ApiResponse<>(true, cards, "Cards fetched for user.")
+                new ApiResponse<>(true, cards, "Cards fetched for user.")
         );
     }
 
-    public static class ApiResponse<T> {
-        public boolean success;
-        public T data;
-        public String message;
-        public ApiResponse(boolean success, T data, String message) {
-            this.success = success;
-            this.data = data;
-            this.message = message;
-        }
-    }
 }
