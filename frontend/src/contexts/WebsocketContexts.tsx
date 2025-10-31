@@ -10,10 +10,12 @@ import { Client, type IMessage } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import type { ChatMessage } from "../pages/ChatPage";
 
+// --- CHANGE 1: Update the context's shape ---
 interface WebSocketContextType {
   stompClient: Client | null;
   isConnected: boolean;
-  clerkUsername: string | null;
+  clerkId: string | null; // Use clerkId as the primary unique identifier
+  currentUsername: string | null; // Keep username for display
   subscribeToPrivateMessages: (
     onMessageReceived: (message: ChatMessage) => void
   ) => () => void; // Returns an unsubscribe function
@@ -23,12 +25,11 @@ const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 const BACKEND_HTTP_API = import.meta.env.VITE_BACKEND_API;
 
-// Helper to get the best available username from Clerk
+// Helper to get the best available username from Clerk (this function is unchanged)
 const getClerkUsername = (
   user: ReturnType<typeof useUser>["user"]
 ): string | null => {
   if (!user) return null;
-  // Use the first available truthy value
   return user.username || user.firstName || user.lastName || user.fullName;
 };
 
@@ -40,10 +41,14 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
   const clientRef = useRef<Client | null>(null);
-  const clerkUsername = getClerkUsername(user);
+
+  // --- CHANGE 2: Get both clerkId and username from the Clerk user object ---
+  const clerkId = user?.id ?? null;
+  const currentUsername = getClerkUsername(user);
 
   useEffect(() => {
-    if (isSignedIn && clerkUsername && !clientRef.current) {
+    // --- CHANGE 3: Use the unique clerkId to decide when to connect ---
+    if (isSignedIn && clerkId && !clientRef.current) {
       const connect = async () => {
         const token = await getToken();
         if (!token) {
@@ -88,13 +93,15 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
       clientRef.current.deactivate();
       clientRef.current = null;
     }
-  }, [isSignedIn, getToken, clerkUsername]);
+  }, [isSignedIn, getToken, clerkId]); // useEffect now depends on clerkId
 
   const subscribeToPrivateMessages = (
     onMessageReceived: (message: ChatMessage) => void
   ) => {
-    if (stompClient && clerkUsername && isConnected) {
-      const destination = `/user/${clerkUsername}/private`;
+    // --- CHANGE 4: Subscribe to the private queue using the unique clerkId ---
+    if (stompClient && clerkId && isConnected) {
+      // This destination MUST match the user identifier on the backend (Principal.getName())
+      const destination = `/user/${clerkId}/private`;
       const subscription = stompClient.subscribe(
         destination,
         (message: IMessage) => {
@@ -114,7 +121,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         stompClient,
         isConnected,
-        clerkUsername,
+        clerkId, // Provide clerkId to consumers
+        currentUsername, // Provide username to consumers
         subscribeToPrivateMessages,
       }}
     >
@@ -123,6 +131,7 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
+// This hook remains unchanged but now provides the updated context value
 // eslint-disable-next-line react-refresh/only-export-components
 export const useWebSocket = () => {
   const context = useContext(WebSocketContext);

@@ -1,12 +1,12 @@
 import { useAuth } from "@clerk/clerk-react";
 import { useQuery } from "@tanstack/react-query";
-// Note: Your file path was "UserApi", so I'm matching that casing.
-import { fetchChatUsers } from "../utils/UserApi";
+import { fetchChatUsers, type UserDto } from "../utils/UserApi";
 
 interface ChatSidebarProps {
-  activeRecipient: string | null;
-  onSelectRecipient: (username: string) => void;
-  clerkUsername: string | null;
+  // Pass the entire active user object, or null
+  activeRecipient: UserDto | null;
+  // Pass the entire selected user object up to the parent
+  onSelectRecipient: (user: UserDto) => void;
 }
 
 export default function ChatSidebar({
@@ -18,16 +18,14 @@ export default function ChatSidebar({
     data: usersData,
     isLoading,
     error,
-  } = useQuery({
+  } = useQuery<UserDto[]>({
     queryKey: ["chatUsers"],
     queryFn: async () => {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
-
       const apiResponse = await fetchChatUsers(token);
-      return apiResponse.data; 
+      return apiResponse.data;
     },
-    
     enabled: !!getToken,
   });
 
@@ -37,21 +35,17 @@ export default function ChatSidebar({
         <h2 className="text-xl font-bold">Conversations</h2>
       </div>
       <div className="flex-grow overflow-y-auto">
-        {isLoading && (
-          <div className="p-4 text-center text-gray-500">Loading users...</div>
-        )}
-        {error && (
-          <div className="p-4 text-center text-red-500">
-            Error loading users.
-          </div>
-        )}
+        {isLoading && <div className="p-4 text-center text-gray-500">Loading users...</div>}
+        {error && <div className="p-4 text-center text-red-500">Error loading users.</div>}
         {usersData &&
           usersData.map((user) => (
             <div
-              key={user.clerkId}
-              onClick={() => onSelectRecipient(user.username)}
+              key={user.clerkId} // Correctly using unique key
+              // Pass the entire user object on click
+              onClick={() => onSelectRecipient(user)}
               className={`p-4 cursor-pointer hover:bg-gray-100 ${
-                activeRecipient === user.username ? "bg-gray-200" : ""
+                // Check for active state using the unique clerkId
+                activeRecipient?.clerkId === user.clerkId ? "bg-gray-200" : ""
               }`}
             >
               <p className="font-semibold">{user.username}</p>
