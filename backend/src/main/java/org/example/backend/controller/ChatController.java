@@ -9,6 +9,8 @@ import org.springframework.stereotype.Controller;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.security.Principal;
+
 @Controller
 public class ChatController {
 
@@ -17,30 +19,17 @@ public class ChatController {
     @Autowired
     private SimpMessagingTemplate messagingTemplate;
 
-    /**
-     * Handles incoming private messages.
-     * The client will send messages to the destination "/app/private-message".
-     *
-     * @param message The ChatMessage DTO from the client.
-     */
     @MessageMapping("/private-message")
-    public void sendPrivateMessage(@Payload ChatMessage message) {
-        log.info("Received private message: {}", message.getContent());
+    public void sendPrivateMessage(@Payload ChatMessage message, Principal principal) {
+        String authenticatedSenderId = principal.getName();
+        message.setSenderClerkId(authenticatedSenderId);
 
-        // This is the core logic for DMs.
-        // SimpMessagingTemplate knows how to route a message to a specific user.
-        // It will send the message to the destination:
-        // /user/{recipientUsername}/private
-        //
-        // The frontend client must be subscribed to this destination.
+        log.info("Routing message from {} to {}", message.getSenderClerkId(), message.getRecipientClerkId());
+
         messagingTemplate.convertAndSendToUser(
-                message.getRecipientUsername(), // The recipient's username
-                "/private", // The private queue name
-                message       // The payload (our message)
+                message.getRecipientClerkId(), // The recipient's unique Clerk ID
+                "/private",                   // The private queue name
+                message                       // The payload
         );
     }
-
-    // You can add other mappings here, e.g., for user status (typing, online)
-    // @MessageMapping("/user-status")
-    // ...
 }
