@@ -6,7 +6,6 @@ import { type UserDto } from "../utils/UserApi";
 import { fetchChatHistory } from "../utils/chatApi"; // 1. Import new API function
 import { useAuth } from "@clerk/clerk-react"; // 2. Import useAuth to get token
 
-
 export interface ChatMessage {
   senderClerkId: string;
   recipientClerkId: string;
@@ -16,7 +15,7 @@ export interface ChatMessage {
   timestamp: string;
 }
 
-type Conversations = Record<string, ChatMessage[]>; 
+type Conversations = Record<string, ChatMessage[]>;
 
 export default function ChatPage() {
   const {
@@ -26,12 +25,12 @@ export default function ChatPage() {
     currentUsername,
     subscribeToPrivateMessages,
   } = useWebSocket();
-  
-  const { getToken } = useAuth(); 
+
+  const { getToken } = useAuth();
   const [conversations, setConversations] = useState<Conversations>({});
   const [activeRecipient, setActiveRecipient] = useState<UserDto | null>(null);
   const [currentMessage, setCurrentMessage] = useState("");
-  const [isLoadingHistory, setIsLoadingHistory] = useState(false); 
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,16 +58,16 @@ export default function ChatPage() {
     setActiveRecipient(user);
 
     if (conversations[user.clerkId]) {
-      return; 
+      return;
     }
 
     setIsLoadingHistory(true);
     try {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
-      
+
       const response = await fetchChatHistory(user.clerkId, token);
-      
+
       setConversations((prev) => ({
         ...prev,
         [user.clerkId]: response.data,
@@ -81,14 +80,20 @@ export default function ChatPage() {
   };
 
   const sendMessage = () => {
-    if (currentMessage && stompClient && clerkId && currentUsername && activeRecipient) {
+    if (
+      currentMessage &&
+      stompClient &&
+      clerkId &&
+      currentUsername &&
+      activeRecipient
+    ) {
       const chatMessage: ChatMessage = {
         senderUsername: currentUsername,
         recipientUsername: activeRecipient.username,
         senderClerkId: clerkId,
         recipientClerkId: activeRecipient.clerkId,
         content: currentMessage,
-        timestamp: new Date().toISOString(), 
+        timestamp: new Date().toISOString(),
       };
 
       stompClient.publish({
@@ -122,6 +127,14 @@ export default function ChatPage() {
 
   return (
     <div className="min-h-screen bg-gray-100 flex h-screen">
+      <div className="mb-6">
+        <a
+          href="/"
+          className="inline-block px-4 py-2 rounded-md bg-gray-800 text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
+        >
+          ← Back to Home
+        </a>
+      </div>
       <ChatSidebar
         activeRecipient={activeRecipient}
         onSelectRecipient={handleSelectRecipient}
@@ -129,7 +142,9 @@ export default function ChatPage() {
       <div className="flex-grow flex flex-col h-screen">
         <div className="p-4 bg-white border-b border-gray-200">
           <h2 className="text-2xl font-bold text-gray-800">
-            {activeRecipient ? `Chat with ${activeRecipient.username}` : "Select a Chat"}
+            {activeRecipient
+              ? `Chat with ${activeRecipient.username}`
+              : "Select a Chat"}
           </h2>
         </div>
         <div className="flex-grow p-4 overflow-y-auto bg-gray-50">
@@ -157,7 +172,7 @@ export default function ChatPage() {
           )}
           <div ref={endOfMessagesRef} />
         </div>
-        
+
         {/* Input Form (no changes) */}
         {activeRecipient && (
           <div className="p-4 bg-white border-t border-gray-200">

@@ -43,7 +43,7 @@ export default function SearchCardsPage() {
             href="/"
             className="inline-block px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
           >
-            Back
+            ← Back to Home
           </a>
         </div>
         {/* Header */}
