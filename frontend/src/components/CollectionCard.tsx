@@ -79,7 +79,7 @@ export default function CollectionCard({ card }: { card: CardResponseDto }) {
           <StatusBadge status={card.status} />
         </div>
         {card.status === "FOR_SALE" && card.price && (
-          <p className="text-xl font-bold text-green-600 mb-2">${card.price.toFixed(2)}</p>
+          <p className="text-xl font-bold text-green-600 mb-2">{card.price.toFixed(2)}</p>
         )}
         <p className="text-sm text-gray-500">Card ID: {card.cardId}</p>
       </div>
