@@ -1,39 +1,42 @@
+import { useState, useEffect, useRef } from "react";
+import { useWebSocket } from "../contexts/WebsocketContexts"; // Corrected path
 import ChatSidebar from "../components/ChatSidebar";
 import ChatMessageView from "../components/ChatMessageView";
-import { useWebSocket } from "../contexts/WebsocketContexts";
-import { useEffect, useRef, useState } from "react";
-import type { UserDto } from "../utils/UserApi"; 
+import { type UserDto } from "../utils/UserApi";
+import { fetchChatHistory } from "../utils/chatApi"; // 1. Import new API function
+import { useAuth } from "@clerk/clerk-react"; // 2. Import useAuth to get token
+
 
 export interface ChatMessage {
-  senderUsername: string;
-  recipientUsername: string;
   senderClerkId: string;
   recipientClerkId: string;
+  senderUsername: string;
+  recipientUsername: string;
   content: string;
   timestamp: string;
 }
 
-type Conversations = Record<string, ChatMessage[]>;
+type Conversations = Record<string, ChatMessage[]>; 
 
 export default function ChatPage() {
   const {
     isConnected,
     stompClient,
-    clerkId, 
+    clerkId,
     currentUsername,
     subscribeToPrivateMessages,
   } = useWebSocket();
-
+  
+  const { getToken } = useAuth(); 
   const [conversations, setConversations] = useState<Conversations>({});
-
   const [activeRecipient, setActiveRecipient] = useState<UserDto | null>(null);
   const [currentMessage, setCurrentMessage] = useState("");
+  const [isLoadingHistory, setIsLoadingHistory] = useState(false); 
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (isConnected && clerkId) {
       const unsubscribe = subscribeToPrivateMessages((message) => {
-
         const chatPartnerId =
           message.senderClerkId === clerkId
             ? message.recipientClerkId
@@ -52,6 +55,31 @@ export default function ChatPage() {
     endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversations, activeRecipient]);
 
+  const handleSelectRecipient = async (user: UserDto) => {
+    setActiveRecipient(user);
+
+    if (conversations[user.clerkId]) {
+      return; 
+    }
+
+    setIsLoadingHistory(true);
+    try {
+      const token = await getToken();
+      if (!token) throw new Error("Not authenticated");
+      
+      const response = await fetchChatHistory(user.clerkId, token);
+      
+      setConversations((prev) => ({
+        ...prev,
+        [user.clerkId]: response.data,
+      }));
+    } catch (error) {
+      console.error("Failed to load chat history:", error);
+    } finally {
+      setIsLoadingHistory(false);
+    }
+  };
+
   const sendMessage = () => {
     if (currentMessage && stompClient && clerkId && currentUsername && activeRecipient) {
       const chatMessage: ChatMessage = {
@@ -60,7 +88,7 @@ export default function ChatPage() {
         senderClerkId: clerkId,
         recipientClerkId: activeRecipient.clerkId,
         content: currentMessage,
-        timestamp: new Date().toISOString(),
+        timestamp: new Date().toISOString(), 
       };
 
       stompClient.publish({
@@ -68,6 +96,7 @@ export default function ChatPage() {
         body: JSON.stringify(chatMessage),
       });
 
+      // Optimistic update
       setConversations((prev) => ({
         ...prev,
         [activeRecipient.clerkId]: [
@@ -95,8 +124,7 @@ export default function ChatPage() {
     <div className="min-h-screen bg-gray-100 flex h-screen">
       <ChatSidebar
         activeRecipient={activeRecipient}
-        onSelectRecipient={setActiveRecipient}
-        clerkUsername={currentUsername}
+        onSelectRecipient={handleSelectRecipient}
       />
       <div className="flex-grow flex flex-col h-screen">
         <div className="p-4 bg-white border-b border-gray-200">
@@ -106,12 +134,14 @@ export default function ChatPage() {
         </div>
         <div className="flex-grow p-4 overflow-y-auto bg-gray-50">
           {activeRecipient ? (
-            activeMessages.length > 0 ? (
+            isLoadingHistory && activeMessages.length === 0 ? (
+              <p className="text-center text-gray-500">Loading history...</p>
+            ) : activeMessages.length > 0 ? (
               activeMessages.map((msg, index) => (
                 <ChatMessageView
-                  key={index}
+                  key={`${msg.senderClerkId}-${msg.timestamp}-${index}`}
                   message={msg}
-                  isSender={msg.senderClerkId === clerkId}
+                  currentUserClerkId={clerkId}
                 />
               ))
             ) : (
@@ -122,11 +152,13 @@ export default function ChatPage() {
             )
           ) : (
             <p className="text-center text-gray-500">
-              Select a user from the left to start chatting.
+              Select a user to start chatting.
             </p>
           )}
           <div ref={endOfMessagesRef} />
         </div>
+        
+        {/* Input Form (no changes) */}
         {activeRecipient && (
           <div className="p-4 bg-white border-t border-gray-200">
             <div className="flex gap-2">
