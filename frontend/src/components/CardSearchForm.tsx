@@ -32,7 +32,7 @@ export default function CardSearchForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md">
+    <form onSubmit={handleSubmit} className="bg-white p-6 rounded-lg shadow-md text-center">
       <h2 className="text-2xl font-bold text-gray-900 mb-6">Search Cards</h2>
 
       <div className="max-w-md mx-auto">
