@@ -6,26 +6,28 @@ import React, {
   useRef,
 } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
-import { Client, type IMessage } from "@stomp/stompjs";
+import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import type { ChatMessage } from "../pages/ChatPage";
 
-// --- CHANGE 1: Update the context's shape ---
+// --- Context Shape Update ---
 interface WebSocketContextType {
   stompClient: Client | null;
   isConnected: boolean;
-  clerkId: string | null; // Use clerkId as the primary unique identifier
-  currentUsername: string | null; // Keep username for display
-  subscribeToPrivateMessages: (
-    onMessageReceived: (message: ChatMessage) => void
-  ) => () => void; // Returns an unsubscribe function
+  clerkId: string | null;
+  currentUsername: string | null;
+  unreadSenders: Set<string>; // Unread messages
+  clearNotificationsFor: (senderId: string) => void;
+  setActiveChatPartner: (partnerId: string | null) => void; // Tell context who we're chatting with
+  registerOnMessageCallback: (
+    callback: ((message: ChatMessage) => void) | null
+  ) => void; // Allow ChatPage to listen
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
 
 const BACKEND_HTTP_API = import.meta.env.VITE_BACKEND_API;
 
-// Helper to get the best available username from Clerk (this function is unchanged)
 const getClerkUsername = (
   user: ReturnType<typeof useUser>["user"]
 ): string | null => {
@@ -41,32 +43,31 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
   const clientRef = useRef<Client | null>(null);
+  const subscriptionRef = useRef<StompSubscription | null>(null);
 
-  // --- CHANGE 2: Get both clerkId and username from the Clerk user object ---
   const clerkId = user?.id ?? null;
   const currentUsername = getClerkUsername(user);
 
+  // --- NEW STATE MANAGED BY CONTEXT ---
+  const [unreadSenders, setUnreadSenders] = useState(new Set<string>());
+  const [activePartnerId, setActivePartnerId] = useState<string | null>(null);
+  // This holds the callback function from ChatPage.tsx
+  const [onMessageCallback, setOnMessageCallback] =
+    useState<((message: ChatMessage) => void) | null>(null);
+
   useEffect(() => {
-    // --- CHANGE 3: Use the unique clerkId to decide when to connect ---
     if (isSignedIn && clerkId && !clientRef.current) {
+      // ... (connection logic is unchanged) ...
       const connect = async () => {
         const token = await getToken();
-        if (!token) {
-          console.error("No auth token for WebSocket, aborting.");
-          return;
-        }
-
+        if (!token) return;
         const client = new Client({
           webSocketFactory: () => new SockJS(`${BACKEND_HTTP_API}/ws`),
-          connectHeaders: {
-            Authorization: `Bearer ${token}`,
-          },
+          connectHeaders: { Authorization: `Bearer ${token}` },
           heartbeatIncoming: 4000,
           heartbeatOutgoing: 4000,
           reconnectDelay: 5000,
-          debug: (str) => {
-            console.log("STOMP: " + str);
-          },
+          debug: (str) => console.log("STOMP: " + str),
           onConnect: () => {
             setIsConnected(true);
             setStompClient(client);
@@ -79,41 +80,72 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
             clientRef.current = null;
             console.log("WebSocket disconnected.");
           },
-          onStompError: (frame) => {
-            console.error("Broker reported error: " + frame.headers["message"]);
-            console.error("Additional details: " + frame.body);
-          },
+          onStompError: (frame) => console.error("Broker error", frame),
         });
-
         client.activate();
       };
-
       connect();
     } else if (!isSignedIn && clientRef.current) {
       clientRef.current.deactivate();
       clientRef.current = null;
     }
-  }, [isSignedIn, getToken, clerkId]); // useEffect now depends on clerkId
+  }, [isSignedIn, getToken, clerkId]);
 
-  const subscribeToPrivateMessages = (
-    onMessageReceived: (message: ChatMessage) => void
-  ) => {
-    // --- CHANGE 4: Subscribe to the private queue using the unique clerkId ---
-    if (stompClient && clerkId && isConnected) {
-      // This destination MUST match the user identifier on the backend (Principal.getName())
+  // --- NEW: Global subscription logic ---
+  useEffect(() => {
+    if (isConnected && stompClient && clerkId) {
+      if (subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+      }
+      
       const destination = `/user/${clerkId}/private`;
-      const subscription = stompClient.subscribe(
+      subscriptionRef.current = stompClient.subscribe(
         destination,
         (message: IMessage) => {
           const incomingMessage: ChatMessage = JSON.parse(message.body);
-          onMessageReceived(incomingMessage);
+
+          // 1. If ChatPage is listening, send the message to it
+          if (onMessageCallback) {
+            onMessageCallback(incomingMessage);
+          }
+
+          // 2. Handle notification logic
+          // If the message is NOT from the person we are actively chatting with
+          if (incomingMessage.senderClerkId !== activePartnerId) {
+            setUnreadSenders((prev) =>
+              new Set(prev.add(incomingMessage.senderClerkId))
+            );
+          }
         }
       );
+
       return () => {
-        subscription.unsubscribe();
+        if (subscriptionRef.current) {
+          subscriptionRef.current.unsubscribe();
+          subscriptionRef.current = null;
+        }
       };
     }
-    return () => {};
+  }, [isConnected, stompClient, clerkId, onMessageCallback, activePartnerId]);
+
+  // Function for ChatPage to set the active partner
+  const setActiveChatPartner = (partnerId: string | null) => {
+    setActivePartnerId(partnerId);
+  };
+
+  // Function for ChatPage to register its listener
+  const registerOnMessageCallback = (
+    callback: ((message: ChatMessage) => void) | null
+  ) => {
+    setOnMessageCallback(() => callback);
+  };
+
+  const clearNotificationsFor = (senderId: string) => {
+    setUnreadSenders((prev) => {
+      const newSet = new Set(prev);
+      newSet.delete(senderId);
+      return newSet;
+    });
   };
 
   return (
@@ -121,9 +153,12 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
       value={{
         stompClient,
         isConnected,
-        clerkId, // Provide clerkId to consumers
-        currentUsername, // Provide username to consumers
-        subscribeToPrivateMessages,
+        clerkId,
+        currentUsername,
+        unreadSenders,
+        clearNotificationsFor,
+        setActiveChatPartner, // Expose new function
+        registerOnMessageCallback, // Expose new function
       }}
     >
       {children}
@@ -131,7 +166,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   );
 };
 
-// This hook remains unchanged but now provides the updated context value
 // eslint-disable-next-line react-refresh/only-export-components
 export const useWebSocket = () => {
   const context = useContext(WebSocketContext);

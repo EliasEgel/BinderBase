@@ -1,10 +1,10 @@
 import { useState, useEffect, useRef } from "react";
-import { useWebSocket } from "../contexts/WebsocketContexts"; // Corrected path
+import { useWebSocket } from "../contexts/WebsocketContexts";
 import ChatSidebar from "../components/ChatSidebar";
 import ChatMessageView from "../components/ChatMessageView";
 import { type UserDto } from "../utils/UserApi";
-import { fetchChatHistory } from "../utils/chatApi"; // 1. Import new API function
-import { useAuth } from "@clerk/clerk-react"; // 2. Import useAuth to get token
+import { fetchChatHistory } from "../utils/chatApi";
+import { useAuth } from "@clerk/clerk-react";
 
 export interface ChatMessage {
   senderClerkId: string;
@@ -23,7 +23,10 @@ export default function ChatPage() {
     stompClient,
     clerkId,
     currentUsername,
-    subscribeToPrivateMessages,
+    clearNotificationsFor,
+    // --- CHANGE 1: Use the new context functions ---
+    setActiveChatPartner,
+    registerOnMessageCallback,
   } = useWebSocket();
 
   const { getToken } = useAuth();
@@ -33,41 +36,59 @@ export default function ChatPage() {
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
+  // --- CHANGE 2: Register/unregister the message handler ---
   useEffect(() => {
-    if (isConnected && clerkId) {
-      const unsubscribe = subscribeToPrivateMessages((message) => {
-        const chatPartnerId =
-          message.senderClerkId === clerkId
-            ? message.recipientClerkId
-            : message.senderClerkId;
+    // This is the function the context will call with a new message
+    const onMessage = (message: ChatMessage) => {
+      const chatPartnerId =
+        message.senderClerkId === clerkId
+          ? message.recipientClerkId
+          : message.senderClerkId;
 
-        setConversations((prev) => ({
-          ...prev,
-          [chatPartnerId]: [...(prev[chatPartnerId] || []), message],
-        }));
-      });
-      return unsubscribe;
+      setConversations((prev) => ({
+        ...prev,
+        [chatPartnerId]: [...(prev[chatPartnerId] || []), message],
+      }));
+    };
+
+    // Tell the context to send us messages
+    registerOnMessageCallback(onMessage);
+
+    // On unmount, tell the context to stop sending us messages
+    return () => {
+      registerOnMessageCallback(null);
+    };
+  }, [clerkId, registerOnMessageCallback]); // Only depends on these
+
+  // --- CHANGE 3: Tell the context who we are chatting with ---
+  useEffect(() => {
+    if (activeRecipient) {
+      setActiveChatPartner(activeRecipient.clerkId);
     }
-  }, [isConnected, clerkId, subscribeToPrivateMessages]);
+    // On cleanup, tell context we aren't chatting with anyone
+    return () => {
+      setActiveChatPartner(null);
+    };
+  }, [activeRecipient, setActiveChatPartner]);
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversations, activeRecipient]);
 
+  // --- CHANGE 4: Update the select handler ---
   const handleSelectRecipient = async (user: UserDto) => {
-    setActiveRecipient(user);
+    setActiveRecipient(user); // This will trigger the useEffect above
+    clearNotificationsFor(user.clerkId); // Clear notifications
 
     if (conversations[user.clerkId]) {
-      return;
+      return; // History already loaded
     }
 
     setIsLoadingHistory(true);
     try {
       const token = await getToken();
       if (!token) throw new Error("Not authenticated");
-
       const response = await fetchChatHistory(user.clerkId, token);
-
       setConversations((prev) => ({
         ...prev,
         [user.clerkId]: response.data,
@@ -79,6 +100,7 @@ export default function ChatPage() {
     }
   };
 
+  // --- (sendMessage and layout are unchanged) ---
   const sendMessage = () => {
     if (
       currentMessage &&
@@ -95,13 +117,10 @@ export default function ChatPage() {
         content: currentMessage,
         timestamp: new Date().toISOString(),
       };
-
       stompClient.publish({
         destination: "/app/private-message",
         body: JSON.stringify(chatMessage),
       });
-
-      // Optimistic update
       setConversations((prev) => ({
         ...prev,
         [activeRecipient.clerkId]: [
@@ -127,28 +146,18 @@ export default function ChatPage() {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="mb-4">
-        <a
-          href="/"
-          className="inline-block px-4 py-2 rounded bg-gray-800 text-white hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-400 transition-colors"
-        >
-          ← Back to Home
-        </a>
-      </div>
-      <div className="mb-8 text-center">
+      <div className="mb-8">
         <h1 className="text-4xl font-bold text-gray-900 mb-2">Chat</h1>
         <p className="text-gray-600">
           Connect with other collectors and sellers.
         </p>
       </div>
-
       <div className="bg-white rounded-lg shadow-md overflow-hidden">
         <div className="flex h-[75vh]">
           <ChatSidebar
             activeRecipient={activeRecipient}
             onSelectRecipient={handleSelectRecipient}
           />
-
           <div className="flex-grow flex flex-col">
             <div className="p-4 bg-white border-b border-gray-200">
               <h2 className="text-2xl font-bold text-gray-800">
@@ -160,9 +169,7 @@ export default function ChatPage() {
             <div className="flex-grow p-4 overflow-y-auto bg-gray-50">
               {activeRecipient ? (
                 isLoadingHistory && activeMessages.length === 0 ? (
-                  <p className="text-center text-gray-500">
-                    Loading history...
-                  </p>
+                  <p className="text-center text-gray-500">Loading history...</p>
                 ) : activeMessages.length > 0 ? (
                   activeMessages.map((msg, index) => (
                     <ChatMessageView
@@ -183,7 +190,6 @@ export default function ChatPage() {
               )}
               <div ref={endOfMessagesRef} />
             </div>
-
             {activeRecipient && (
               <div className="p-4 bg-white border-t border-gray-200">
                 <div className="flex gap-2">
