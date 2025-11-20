@@ -1,10 +1,11 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useWebSocket } from "../contexts/WebsocketContexts";
 import ChatSidebar from "../components/ChatSidebar";
 import ChatMessageView from "../components/ChatMessageView";
 import { type UserDto } from "../utils/UserApi";
 import { fetchChatHistory } from "../utils/chatApi";
 import { useAuth } from "@clerk/clerk-react";
+import { useLocation } from "@tanstack/react-router";
 
 export interface ChatMessage {
   senderClerkId: string;
@@ -24,48 +25,76 @@ export default function ChatPage() {
     clerkId,
     currentUsername,
     clearNotificationsFor,
-    // --- CHANGE 1: Use the new context functions ---
     setActiveChatPartner,
     registerOnMessageCallback,
   } = useWebSocket();
 
   const { getToken } = useAuth();
+  const location = useLocation();
+
   const [conversations, setConversations] = useState<Conversations>({});
   const [activeRecipient, setActiveRecipient] = useState<UserDto | null>(null);
   const [currentMessage, setCurrentMessage] = useState("");
   const [isLoadingHistory, setIsLoadingHistory] = useState(false);
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+  const hasInitializedFromUrl = useRef(false);
 
-  // --- CHANGE 2: Register/unregister the message handler ---
-  useEffect(() => {
-    // This is the function the context will call with a new message
-    const onMessage = (message: ChatMessage) => {
+  const onMessageReceived = useCallback(
+    (message: ChatMessage) => {
+      if (!clerkId) return;
+
       const chatPartnerId =
         message.senderClerkId === clerkId
           ? message.recipientClerkId
           : message.senderClerkId;
 
-      setConversations((prev) => ({
-        ...prev,
-        [chatPartnerId]: [...(prev[chatPartnerId] || []), message],
-      }));
-    };
+      setConversations((prev) => {
+        const existingMessages = prev[chatPartnerId] || [];
+        
+      
+        const isDuplicate = existingMessages.some(
+            m => m.timestamp === message.timestamp && m.content === message.content
+        );
+        if (isDuplicate) return prev;
 
-    // Tell the context to send us messages
-    registerOnMessageCallback(onMessage);
+        return {
+          ...prev,
+          [chatPartnerId]: [...existingMessages, message],
+        };
+      });
+    },
+    [clerkId]
+  );
 
-    // On unmount, tell the context to stop sending us messages
+  useEffect(() => {
+    registerOnMessageCallback(onMessageReceived);
+    
+    // Cleanup
     return () => {
       registerOnMessageCallback(null);
     };
-  }, [clerkId, registerOnMessageCallback]); // Only depends on these
+  }, [registerOnMessageCallback, onMessageReceived]);
 
-  // --- CHANGE 3: Tell the context who we are chatting with ---
+  useEffect(() => {
+    const searchParams = new URLSearchParams(location.search);
+    const partnerId = searchParams.get("partnerId");
+    const partnerName = searchParams.get("partnerName");
+
+    if (partnerId && partnerName && !hasInitializedFromUrl.current && clerkId) {
+      hasInitializedFromUrl.current = true;
+      const sellerDto: UserDto = {
+        clerkId: partnerId,
+        username: partnerName,
+      };
+      handleSelectRecipient(sellerDto);
+      window.history.replaceState({}, "", "/chat");
+    }
+  }, [location.search, clerkId]);
+
   useEffect(() => {
     if (activeRecipient) {
       setActiveChatPartner(activeRecipient.clerkId);
     }
-    // On cleanup, tell context we aren't chatting with anyone
     return () => {
       setActiveChatPartner(null);
     };
@@ -75,14 +104,11 @@ export default function ChatPage() {
     endOfMessagesRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [conversations, activeRecipient]);
 
-  // --- CHANGE 4: Update the select handler ---
   const handleSelectRecipient = async (user: UserDto) => {
-    setActiveRecipient(user); // This will trigger the useEffect above
-    clearNotificationsFor(user.clerkId); // Clear notifications
+    setActiveRecipient(user);
+    clearNotificationsFor(user.clerkId);
 
-    if (conversations[user.clerkId]) {
-      return; // History already loaded
-    }
+    if (conversations[user.clerkId]) return;
 
     setIsLoadingHistory(true);
     try {
@@ -100,36 +126,41 @@ export default function ChatPage() {
     }
   };
 
-  // --- (sendMessage and layout are unchanged) ---
   const sendMessage = () => {
     if (
-      currentMessage &&
-      stompClient &&
-      clerkId &&
-      currentUsername &&
-      activeRecipient
+      !currentMessage.trim() ||
+      !stompClient ||
+      !clerkId ||
+      !activeRecipient
     ) {
-      const chatMessage: ChatMessage = {
-        senderUsername: currentUsername,
-        recipientUsername: activeRecipient.username,
-        senderClerkId: clerkId,
-        recipientClerkId: activeRecipient.clerkId,
-        content: currentMessage,
-        timestamp: new Date().toISOString(),
-      };
-      stompClient.publish({
-        destination: "/app/private-message",
-        body: JSON.stringify(chatMessage),
-      });
-      setConversations((prev) => ({
-        ...prev,
-        [activeRecipient.clerkId]: [
-          ...(prev[activeRecipient.clerkId] || []),
-          chatMessage,
-        ],
-      }));
-      setCurrentMessage("");
+      return;
     }
+
+    const senderName = currentUsername || "Me";
+    const chatMessage: ChatMessage = {
+      senderUsername: senderName,
+      recipientUsername: activeRecipient.username,
+      senderClerkId: clerkId,
+      recipientClerkId: activeRecipient.clerkId,
+      content: currentMessage,
+      timestamp: new Date().toISOString(),
+    };
+
+    stompClient.publish({
+      destination: "/app/private-message",
+      body: JSON.stringify(chatMessage),
+    });
+
+    // Optimistic Update
+    setConversations((prev) => {
+      const previousMessages = prev[activeRecipient.clerkId] || [];
+      return {
+        ...prev,
+        [activeRecipient.clerkId]: [...previousMessages, chatMessage],
+      };
+    });
+
+    setCurrentMessage("");
   };
 
   const activeMessages = activeRecipient
@@ -203,7 +234,7 @@ export default function ChatPage() {
                   />
                   <button
                     onClick={sendMessage}
-                    disabled={!currentMessage}
+                    disabled={!currentMessage.trim()}
                     className="px-6 py-2 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:bg-indigo-300"
                   >
                     Send

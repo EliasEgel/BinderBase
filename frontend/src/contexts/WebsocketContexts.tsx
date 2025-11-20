@@ -4,24 +4,24 @@ import React, {
   useEffect,
   useState,
   useRef,
+  useCallback,
 } from "react";
 import { useAuth, useUser } from "@clerk/clerk-react";
 import { Client, type IMessage, type StompSubscription } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
 import type { ChatMessage } from "../pages/ChatPage";
 
-// --- Context Shape Update ---
 interface WebSocketContextType {
   stompClient: Client | null;
   isConnected: boolean;
   clerkId: string | null;
   currentUsername: string | null;
-  unreadSenders: Set<string>; // Unread messages
+  unreadSenders: Set<string>;
   clearNotificationsFor: (senderId: string) => void;
-  setActiveChatPartner: (partnerId: string | null) => void; // Tell context who we're chatting with
+  setActiveChatPartner: (partnerId: string | null) => void;
   registerOnMessageCallback: (
     callback: ((message: ChatMessage) => void) | null
-  ) => void; // Allow ChatPage to listen
+  ) => void;
 }
 
 const WebSocketContext = createContext<WebSocketContextType | null>(null);
@@ -48,16 +48,16 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
   const clerkId = user?.id ?? null;
   const currentUsername = getClerkUsername(user);
 
-  // --- NEW STATE MANAGED BY CONTEXT ---
   const [unreadSenders, setUnreadSenders] = useState(new Set<string>());
-  const [activePartnerId, setActivePartnerId] = useState<string | null>(null);
-  // This holds the callback function from ChatPage.tsx
-  const [onMessageCallback, setOnMessageCallback] =
-    useState<((message: ChatMessage) => void) | null>(null);
+
+
+  const activePartnerIdRef = useRef<string | null>(null);
+  const onMessageCallbackRef = useRef<((message: ChatMessage) => void) | null>(
+    null
+  );
 
   useEffect(() => {
     if (isSignedIn && clerkId && !clientRef.current) {
-      // ... (connection logic is unchanged) ...
       const connect = async () => {
         const token = await getToken();
         if (!token) return;
@@ -67,7 +67,6 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
           heartbeatIncoming: 4000,
           heartbeatOutgoing: 4000,
           reconnectDelay: 5000,
-          debug: (str) => console.log("STOMP: " + str),
           onConnect: () => {
             setIsConnected(true);
             setStompClient(client);
@@ -91,62 +90,65 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
     }
   }, [isSignedIn, getToken, clerkId]);
 
-  // --- NEW: Global subscription logic ---
+
   useEffect(() => {
     if (isConnected && stompClient && clerkId) {
-      if (subscriptionRef.current) {
-        subscriptionRef.current.unsubscribe();
+      // Subscribe ONLY if we haven't already
+      if (!subscriptionRef.current) {
+        const destination = `/user/${clerkId}/private`;
+        
+        console.log("Subscribing to:", destination);
+        
+        subscriptionRef.current = stompClient.subscribe(
+          destination,
+          (message: IMessage) => {
+            const incomingMessage: ChatMessage = JSON.parse(message.body);
+            
+            // 1. Access the current callback via Ref
+            if (onMessageCallbackRef.current) {
+              onMessageCallbackRef.current(incomingMessage);
+            }
+
+            // 2. Access the current active partner via Ref
+            const currentPartner = activePartnerIdRef.current;
+
+            // Notification Logic
+            if (incomingMessage.senderClerkId !== currentPartner) {
+              setUnreadSenders((prev) =>
+                new Set(prev.add(incomingMessage.senderClerkId))
+              );
+            }
+          }
+        );
       }
-      
-      const destination = `/user/${clerkId}/private`;
-      subscriptionRef.current = stompClient.subscribe(
-        destination,
-        (message: IMessage) => {
-          const incomingMessage: ChatMessage = JSON.parse(message.body);
-
-          // 1. If ChatPage is listening, send the message to it
-          if (onMessageCallback) {
-            onMessageCallback(incomingMessage);
-          }
-
-          // 2. Handle notification logic
-          // If the message is NOT from the person we are actively chatting with
-          if (incomingMessage.senderClerkId !== activePartnerId) {
-            setUnreadSenders((prev) =>
-              new Set(prev.add(incomingMessage.senderClerkId))
-            );
-          }
-        }
-      );
-
-      return () => {
-        if (subscriptionRef.current) {
-          subscriptionRef.current.unsubscribe();
-          subscriptionRef.current = null;
-        }
-      };
     }
-  }, [isConnected, stompClient, clerkId, onMessageCallback, activePartnerId]);
 
-  // Function for ChatPage to set the active partner
-  const setActiveChatPartner = (partnerId: string | null) => {
-    setActivePartnerId(partnerId);
-  };
+    return () => {
+      if (!isConnected && subscriptionRef.current) {
+        subscriptionRef.current.unsubscribe();
+        subscriptionRef.current = null;
+      }
+    };
+  }, [isConnected, stompClient, clerkId]);
 
-  // Function for ChatPage to register its listener
-  const registerOnMessageCallback = (
-    callback: ((message: ChatMessage) => void) | null
-  ) => {
-    setOnMessageCallback(() => callback);
-  };
+  const setActiveChatPartner = useCallback((partnerId: string | null) => {
+    activePartnerIdRef.current = partnerId;
+  }, []);
 
-  const clearNotificationsFor = (senderId: string) => {
+  const registerOnMessageCallback = useCallback(
+    (callback: ((message: ChatMessage) => void) | null) => {
+      onMessageCallbackRef.current = callback;
+    },
+    []
+  );
+
+  const clearNotificationsFor = useCallback((senderId: string) => {
     setUnreadSenders((prev) => {
       const newSet = new Set(prev);
       newSet.delete(senderId);
       return newSet;
     });
-  };
+  }, []);
 
   return (
     <WebSocketContext.Provider
@@ -157,8 +159,8 @@ export const WebSocketProvider: React.FC<{ children: React.ReactNode }> = ({
         currentUsername,
         unreadSenders,
         clearNotificationsFor,
-        setActiveChatPartner, // Expose new function
-        registerOnMessageCallback, // Expose new function
+        setActiveChatPartner,
+        registerOnMessageCallback,
       }}
     >
       {children}
