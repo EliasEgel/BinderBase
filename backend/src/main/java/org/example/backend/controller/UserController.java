@@ -41,4 +41,13 @@ public class UserController {
                 new ApiResponse<>(true, users, "Users fetched successfully.")
         );
     }
+    @GetMapping("/chat-partners") // New specific endpoint
+    public ResponseEntity<ApiResponse<List<UserDto>>> getChatPartners(@AuthenticationPrincipal Jwt principal) {
+        String clerkUserId = principal.getSubject();
+        List<UserDto> users = userService.getUsersWithChatHistory(clerkUserId);
+
+        return ResponseEntity.ok(
+                new ApiResponse<>(true, users, "Chat partners fetched.")
+        );
+    }
 }

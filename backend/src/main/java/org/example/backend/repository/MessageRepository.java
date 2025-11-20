@@ -22,4 +22,12 @@ public interface MessageRepository extends JpaRepository<Message, Long> {
             "ORDER BY m.timestamp ASC")
     List<Message> findConversationHistory(@Param("clerkId1") String clerkId1,
                                           @Param("clerkId2") String clerkId2);
+
+    @Query("SELECT DISTINCT CASE " +
+            "WHEN m.senderClerkId = :myId THEN m.recipientClerkId " +
+            "ELSE m.senderClerkId " +
+            "END " +
+            "FROM Message m " +
+            "WHERE m.senderClerkId = :myId OR m.recipientClerkId = :myId")
+    List<String> findChatPartnerIds(@Param("myId") String myId);
 }

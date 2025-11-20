@@ -3,6 +3,7 @@ package org.example.backend.service;
 import lombok.RequiredArgsConstructor;
 import org.example.backend.model.User;
 import org.example.backend.dto.UserDto;
+import org.example.backend.repository.MessageRepository;
 import org.example.backend.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,6 +16,7 @@ import java.util.stream.Collectors;
 public class UserService {
 
     private final UserRepository userRepository;
+    private final MessageRepository messageRepository;
 
     /**
      * Finds a user by their Clerk ID. If the user does not exist,
@@ -50,6 +52,22 @@ public class UserService {
                 // Filter out the current user (you don't want to chat with yourself)
                 .filter(user -> !user.getClerkUserId().equals(clerkUserIdOfCurrentUser))
                 // Map to the safe DTO
+                .map(user -> new UserDto(user.getUsername(), user.getClerkUserId()))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * Returns users who have an existing chat history with the current user.
+     */
+    @Transactional(readOnly = true)
+    public List<UserDto> getUsersWithChatHistory(String currentUserClerkId) {
+        // 1. Get IDs of everyone we've talked to
+        List<String> partnerIds = messageRepository.findChatPartnerIds(currentUserClerkId);
+
+        // 2. Find those User entities in the database
+        // (Note: You might need to add 'findByClerkUserIdIn' to UserRepository, or just filter/loop)
+        return userRepository.findAll().stream()
+                .filter(user -> partnerIds.contains(user.getClerkUserId()))
                 .map(user -> new UserDto(user.getUsername(), user.getClerkUserId()))
                 .collect(Collectors.toList());
     }

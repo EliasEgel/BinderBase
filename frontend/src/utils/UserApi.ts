@@ -5,24 +5,15 @@ export interface UserDto {
   clerkId: string;
 }
 
-/**
- * Fetches the list of all users available for chat.
- * Requires the user's auth token.
- */
-export async function fetchChatUsers(clerkToken: string): Promise<ApiResponse<UserDto[]>> {
-  const endpoint = `${BACKEND_API}/api/v1/users`;
+export async function fetchChatPartners(clerkToken: string): Promise<ApiResponse<UserDto[]>> {
+  const endpoint = `${BACKEND_API}/api/v1/users/chat-partners`; // Updated Endpoint
 
   const response = await fetch(endpoint, {
     method: "GET",
-    headers: {
-      Authorization: `Bearer ${clerkToken}`,
-    },
+    headers: { Authorization: `Bearer ${clerkToken}` },
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to fetch users");
-  }
-
+  if (!response.ok) throw new Error("Failed to fetch chat partners");
   return response.json();
 }
 
