@@ -104,6 +104,7 @@ public class MarketplaceService {
                 .id(card.getId())
                 .name(card.getName())
                 .username(card.getUser().getUsername())
+                .userId(card.getUser().getClerkUserId())
                 .cardId(card.getCardId())
                 .status(card.getStatus())
                 .price(card.getPrice())

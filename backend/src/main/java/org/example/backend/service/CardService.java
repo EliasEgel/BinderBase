@@ -60,6 +60,7 @@ public class CardService {
                 .name(card.getName())
                 .cardId(card.getCardId())
                 .username(card.getUser().getUsername())
+                .userId(card.getUser().getClerkUserId())
                 .status(card.getStatus())
                 .price(card.getPrice())
                 .build();

@@ -16,6 +16,7 @@ public class CardResponseDto {
     private Long id;
     private String name;
     private String cardId;
+    private String userId;
     private String username;
     private CardStatus status;
     private BigDecimal price;
