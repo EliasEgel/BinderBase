@@ -2,6 +2,7 @@
 export type CardStatus = "IN_COLLECTION" | "FOR_SALE" | "SOLD";
 // Type for user collection response
 export type CardResponseDto = {
+  userId: string;
   id: number;
   name: string;
   cardId: string;
