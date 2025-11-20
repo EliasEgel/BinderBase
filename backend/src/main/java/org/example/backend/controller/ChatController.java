@@ -3,6 +3,7 @@ package org.example.backend.controller;
 import org.example.backend.dto.ApiResponse;
 import org.example.backend.model.ChatMessage;
 import org.example.backend.service.ChatService;
+import org.example.backend.service.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
@@ -25,10 +26,12 @@ public class ChatController {
 
     private final SimpMessagingTemplate messagingTemplate;
     private final ChatService chatService; // Inject ChatService
+    private final UserService userService;
 
-    public ChatController(SimpMessagingTemplate messagingTemplate, ChatService chatService) {
+    public ChatController(SimpMessagingTemplate messagingTemplate, ChatService chatService, UserService userService) {
         this.messagingTemplate = messagingTemplate;
         this.chatService = chatService;
+        this.userService = userService;
     }
 
     /**
@@ -38,6 +41,7 @@ public class ChatController {
     public void sendPrivateMessage(@Payload ChatMessage message, Principal principal) {
         String authenticatedSenderId = principal.getName();
         message.setSenderClerkId(authenticatedSenderId);
+        userService.findOrCreateUser(message.getSenderClerkId(), message.getSenderUsername());
 
         // Save the message to the database
         ChatMessage savedMessage = chatService.saveMessage(message);
