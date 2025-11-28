@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: backend-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: backend
+  ports:
+    - port: 8080
+      targetPort: 8080
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: backend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: backend
+  template:
+    metadata:
+      labels:
+        app: backend
+    spec:
+      containers:
+        - name: backend
+          image: my-backend:k8s
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 8080
+          env:
+            # 1. Manually override URL to point to the internal K8s Service
+            #    (Ignoring the 'localhost' value in your .env)
+            - name: JDBC_DATABASE_URL
+              value: "jdbc:postgresql://postgres-service:5432/binderbasedb"
+
+            # 2. Pull the rest securely from the secret generated from your .env
+            - name: JDBC_DATABASE_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JDBC_DATABASE_USERNAME
+            - name: JDBC_DATABASE_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: JDBC_DATABASE_PASSWORD
+            - name: CLERK_JWT_ISSUER_URI
+              valueFrom:
+                secretKeyRef:
+                  name: app-secrets
+                  key: CLERK_JWT_ISSUER_URI

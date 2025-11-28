@@ -21,7 +21,7 @@ spring:
   jpa:
     hibernate:
       ddl-auto: ${JPA_DDL_AUTO:}
-    show-sql: ${JPA_SHOW_SQL:}
+    show-sql: ${JPA_SHOW_SQL:false}
     database-platform: org.hibernate.dialect.PostgreSQLDialect
     defer-datasource-initialization: true
   sql:

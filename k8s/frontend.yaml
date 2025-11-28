@@ -1,0 +1,34 @@
+# 1. Frontend Service (LoadBalancer - exposes to browser)
+apiVersion: v1
+kind: Service
+metadata:
+  name: frontend-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: frontend
+  ports:
+    - port: 5173 # We map port 5173 on localhost
+      targetPort: 80   # To port 80 inside the container (nginx)
+---
+# 2. Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: frontend
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: frontend
+  template:
+    metadata:
+      labels:
+        app: frontend
+    spec:
+      containers:
+        - name: frontend
+          image: my-frontend:k8s
+          imagePullPolicy: Never
+          ports:
+            - containerPort: 80
