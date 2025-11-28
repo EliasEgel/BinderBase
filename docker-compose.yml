@@ -1,0 +1,62 @@
+services:
+  # 1. Database Service
+  db:
+    image: postgres:14
+    container_name: postgres-db
+    restart: always
+    environment:
+      POSTGRES_USER: binderbasedb
+      POSTGRES_PASSWORD: binderbasedb
+      POSTGRES_DB: binderbasedb
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    networks:
+      - app-network
+
+  # 2. Backend Service
+  backend:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: spring-backend
+    restart: always
+    ports:
+      - "8080:8080"
+    depends_on:
+      - db
+    env_file:
+      - ./backend/.env
+    environment:
+      # OVERRIDE the DB URL to use the docker service name 'db' instead of 'localhost'
+      - JDBC_DATABASE_URL=jdbc:postgresql://db:5432/binderbasedb
+      - JDBC_DATABASE_USERNAME=binderbasedb
+      - JDBC_DATABASE_PASSWORD=binderbasedb
+    networks:
+      - app-network
+
+  # 3. Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: react-frontend
+    restart: always
+    ports:
+      - "5173:80" # Map host port 5173 (browser) to container port 80 (nginx)
+    depends_on:
+      - backend
+    env_file:
+      - ./frontend/.env
+    networks:
+      - app-network
+
+# Define a shared network so containers can talk to each other
+networks:
+  app-network:
+    driver: bridge
+
+# Persist DB data
+volumes:
+  db_data:
